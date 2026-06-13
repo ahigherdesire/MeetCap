@@ -12,7 +12,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Library } from './pages/Library'
 import { Settings } from './pages/Settings'
 import { Permissions } from './pages/Permissions'
-import { activeAdapters } from './lib/detection'
+import { activeAdapters, manualMeeting, type MeetcapDesktopBridge } from './lib/detection'
 
 function useTheme() {
   const theme = useStore((s) => s.settings.theme)
@@ -44,6 +44,7 @@ export default function App() {
   const loadRecordings = useStore((s) => s.loadRecordings)
   const autoDetect = useStore((s) => s.settings.autoDetect)
   const setDetected = useStore((s) => s.setDetected)
+  const startRecording = useStore((s) => s.startRecording)
   const recordingState = useStore((s) => s.recordingState)
   const [drawer, setDrawer] = useState(false)
 
@@ -59,6 +60,22 @@ export default function App() {
     adapters.forEach((a) => a.start((m) => useStore.getState().recordingState === 'idle' && setDetected(m)))
     return () => adapters.forEach((a) => a.stop())
   }, [autoDetect, setDetected])
+
+  // Desktop bridge: the native popup's "Start Recording" arrives here, and we
+  // mirror recording + detection-enabled state back so the tray stays in sync.
+  const desktop = (window as unknown as { meetcapDesktop?: MeetcapDesktopBridge }).meetcapDesktop
+  useEffect(() => {
+    if (!desktop) return
+    return desktop.onStartRecording((m) => startRecording(manualMeeting(m.platform, m.title)))
+  }, [desktop, startRecording])
+
+  useEffect(() => {
+    desktop?.setRecordingState(recordingState)
+  }, [desktop, recordingState])
+
+  useEffect(() => {
+    desktop?.setDetectionEnabled(autoDetect)
+  }, [desktop, autoDetect])
 
   // Warn before closing the tab mid-recording so footage isn't lost silently.
   useEffect(() => {

@@ -92,14 +92,30 @@ export const browserExtensionAdapter: DetectionAdapter = {
   },
 }
 
-/** Stub: an Electron/Tauri shell would push window-title matches here. */
+/**
+ * Desktop shell adapter. When running inside the Electron build, the main
+ * process polls OS window titles and pushes matches through the preload bridge
+ * (`window.meetcapDesktop`). The native always-on-top popup handles the prompt
+ * UI, so this adapter only mirrors detections into the renderer's state.
+ */
 export const desktopAdapter: DetectionAdapter = {
   name: 'Desktop shell',
-  available: typeof window !== 'undefined' && '__MEETCAP_DESKTOP__' in window,
-  start() {
-    /* wired by the desktop preload bridge in a packaged build */
-  },
+  available: typeof window !== 'undefined' && 'meetcapDesktop' in window,
+  // The native always-on-top popup is the prompt UI in the desktop build, and
+  // the "Start Recording" click arrives via `meetcapDesktop.onStartRecording`
+  // (wired in App.tsx). So this adapter intentionally doesn't open the in-app
+  // popup — it exists for capability reporting.
+  start() {},
   stop() {},
+}
+
+export interface MeetcapDesktopBridge {
+  isDesktop: boolean
+  platform: string
+  onStartRecording(cb: (m: { platform: Platform; title: string }) => void): () => void
+  onMeetingDetected(cb: (m: { platform: string; title?: string; detectedAt?: number }) => void): () => void
+  setRecordingState(state: string): void
+  setDetectionEnabled(enabled: boolean): void
 }
 
 export function activeAdapters(): DetectionAdapter[] {

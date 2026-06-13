@@ -1,8 +1,8 @@
-# MeetCap — Consent-first meeting recorder
+# MeetCapppp - Consent-first meeting recorder
 
 A modern, privacy-first web/desktop app for recording **your own** Google Meet and
 Zoom sessions. Recording only ever starts after you explicitly click **Start
-Recording** — never secretly, never automatically.
+Recording** never secretly, never automatically.
 
 > ⚠️ **Consent matters.** Depending on local laws and workplace policy, you may need
 > participants' consent before recording. MeetCap always shows a clear indicator
@@ -11,19 +11,19 @@ Recording** — never secretly, never automatically.
 
 ## Features
 
-- **Consent-first capture** — explicit start, always-visible recording indicator.
-- **Meeting detection** — recognizes Google Meet / Zoom from the shared surface, with
+- **Consent-first capture** explicit start, always-visible recording indicator.
+- **Meeting detection**  recognizes Google Meet / Zoom from the shared surface, with
   pluggable adapters for a companion browser extension or desktop shell.
 - **Non-intrusive detection popup** — "Meeting detected. Would you like to start recording?"
-- **Full recording controls** — pause, resume, stop, save.
-- **Screen + audio capture** — tab/system audio and microphone, mixed via WebAudio.
-- **Clean summary screen** — title, date/time, duration, file size, save location, rename.
-- **Recordings library** — search, play, download, rename, delete.
-- **Privacy-first settings** — explains exactly what is stored and where.
-- **Permissions screen** — review and test screen, mic, and storage access.
-- **Robust error & recovery** — permission denied, no audio source, interruption,
+- **Full recording controls**  pause, resume, stop, save.
+- **Screen + audio capture** tab/system audio and microphone, mixed via WebAudio.
+- **Clean summary screen**  title, date/time, duration, file size, save location, rename.
+- **Recordings library**  search, play, download, rename, delete.
+- **Privacy-first settings**  explains exactly what is stored and where.
+- **Permissions screen**  review and test screen, mic, and storage access.
+- **Robust error & recovery**  permission denied, no audio source, interruption,
   storage full, unsupported browser, meeting ended.
-- **Polished UX** — modern SaaS UI, responsive, dark/light/system themes, smooth
+- **Polished UX**  modern SaaS UI, responsive, dark/light/system themes, smooth
   animations (respects `prefers-reduced-motion`), keyboard-accessible, toast feedback.
 
 ## Tech stack
@@ -70,7 +70,7 @@ picker.
 A sandboxed web page cannot read other browser tabs or OS window titles. MeetCap
 exposes two adapter stubs in `detection.ts` so this can be wired up in production:
 
-- **`browserExtensionAdapter`** — a companion extension with the `tabs` permission
+- **`browserExtensionAdapter`**  a companion extension with the `tabs` permission
   posts active Meet/Zoom URLs via `window.postMessage`.
 - **`desktopAdapter`** — an Electron/Tauri shell inspects window titles and pushes
   matches through a preload bridge.

@@ -80,10 +80,22 @@
                     <StackPanel Grid.Row="1">
                         <RadioButton Style="{StaticResource NavButton}" GroupName="Nav"
                                      IsChecked="{Binding IsDashboardSelected, Mode=OneWay}"
-                                     Command="{Binding ShowDashboardCommand}" Content="Dashboard" />
+                                     Command="{Binding ShowDashboardCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE80F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="16" VerticalAlignment="Center" Width="24" />
+                                <TextBlock Text="Dashboard" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
                         <RadioButton Style="{StaticResource NavButton}" GroupName="Nav"
                                      IsChecked="{Binding IsDashboardSelected, Converter={StaticResource InverseBoolConverter}, Mode=OneWay}"
-                                     Command="{Binding ShowSettingsCommand}" Content="Settings" />
+                                     Command="{Binding ShowSettingsCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="16" VerticalAlignment="Center" Width="24" />
+                                <TextBlock Text="Settings" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
                     </StackPanel>
 
                     <!-- Recording status chip -->

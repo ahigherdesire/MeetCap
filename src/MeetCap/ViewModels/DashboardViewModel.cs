@@ -12,6 +12,7 @@ public partial class DashboardViewModel : ObservableObject
     private readonly IRecordingService _recording;
     private readonly IRecordingLibraryService _library;
     private readonly IMeetingDetectionService _detection;
+    private readonly ISettingsService _settings;
     private readonly DispatcherTimer _elapsedTimer;
 
     [ObservableProperty] private bool _isRecording;
@@ -19,30 +20,47 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private string _statusDetail = "MeetCap is watching for meetings.";
     [ObservableProperty] private string _elapsed = "00:00:00";
     [ObservableProperty] private string _toggleLabel = "Start recording";
+    [ObservableProperty] private string _toggleGlyph = ""; // record
+    [ObservableProperty] private string _qualityText = "High";
+    [ObservableProperty] private string _folderText = "";
 
     public ObservableCollection<RecordingItem> RecentRecordings { get; } = new();
 
     public bool HasRecordings => RecentRecordings.Count > 0;
+    public string RecordingsCountText =>
+        RecentRecordings.Count == 0 ? "No recordings yet"
+        : RecentRecordings.Count == 1 ? "1 recording"
+        : $"{RecentRecordings.Count} recordings";
 
     public DashboardViewModel(
         IRecordingService recording,
         IRecordingLibraryService library,
-        IMeetingDetectionService detection)
+        IMeetingDetectionService detection,
+        ISettingsService settings)
     {
         _recording = recording;
         _library = library;
         _detection = detection;
+        _settings = settings;
 
         _recording.StateChanged += (_, _) => OnDispatcher(RefreshState);
         _detection.MeetingStarted += (_, _) => OnDispatcher(RefreshState);
         _detection.MeetingEnded += (_, _) => OnDispatcher(RefreshState);
         _recording.Completed += (_, _) => OnDispatcher(RefreshRecordings);
+        _settings.Changed += (_, _) => OnDispatcher(RefreshInfo);
 
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += (_, _) => UpdateElapsed();
 
+        RefreshInfo();
         RefreshState();
         RefreshRecordings();
+    }
+
+    private void RefreshInfo()
+    {
+        QualityText = _settings.Settings.Quality.ToString();
+        FolderText = _settings.Settings.OutputFolder;
     }
 
     private static void OnDispatcher(Action action) =>
@@ -92,6 +110,7 @@ public partial class DashboardViewModel : ObservableObject
         foreach (var item in _library.GetRecent())
             RecentRecordings.Add(item);
         OnPropertyChanged(nameof(HasRecordings));
+        OnPropertyChanged(nameof(RecordingsCountText));
     }
 
     [RelayCommand]

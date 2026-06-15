@@ -7,8 +7,8 @@
         ShowInTaskbar="False"
         Topmost="True"
         ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight"
-        Width="380">
+        SizeToContent="Height"
+        Width="392">
     <Border x:Name="RootBorder"
             CornerRadius="14"
             Margin="16"

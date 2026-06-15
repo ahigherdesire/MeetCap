@@ -28,7 +28,10 @@ public sealed class RecordingService : IRecordingService
     public void Start(MeetingPlatform platform = MeetingPlatform.Unknown)
     {
         if (IsRecording)
+        {
+            DetectionLog.Write("[rec] Start ignored — already recording.");
             return;
+        }
 
         var s = _settings.Settings;
         try
@@ -46,11 +49,13 @@ public sealed class RecordingService : IRecordingService
             IsRecording = true;
 
             _recorder.Record(path);
+            DetectionLog.Write($"[rec] START -> {path} (quality={s.Quality}, sysAudio={s.RecordSystemAudio}, mic={s.RecordMicrophone})");
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
-            CleanupRecorder();
+            DetectionLog.Write($"[rec] START EXCEPTION: {ex.Message}");
+            DetachRecorder();
             IsRecording = false;
             CurrentFilePath = null;
             StateChanged?.Invoke(this, EventArgs.Empty);
@@ -66,10 +71,12 @@ public sealed class RecordingService : IRecordingService
         try
         {
             // Recorder.Stop is async; finalization arrives via OnRecordingComplete.
+            DetectionLog.Write("[rec] STOP requested.");
             _recorder.Stop();
         }
         catch (Exception ex)
         {
+            DetectionLog.Write($"[rec] STOP EXCEPTION: {ex.Message}");
             Failed?.Invoke(this, ex.Message);
         }
     }
@@ -77,8 +84,12 @@ public sealed class RecordingService : IRecordingService
     private void OnComplete(object? sender, RecordingCompleteEventArgs e)
     {
         var path = e.FilePath ?? CurrentFilePath;
+        long size = -1;
+        try { if (path is not null && File.Exists(path)) size = new FileInfo(path).Length; } catch { }
+        DetectionLog.Write($"[rec] COMPLETE -> {path} ({size} bytes)");
+
         IsRecording = false;
-        CleanupRecorder();
+        DisposeRecorderOffThread();
         StateChanged?.Invoke(this, EventArgs.Empty);
         if (!string.IsNullOrEmpty(path))
             Completed?.Invoke(this, path);
@@ -87,21 +98,42 @@ public sealed class RecordingService : IRecordingService
 
     private void OnFailed(object? sender, RecordingFailedEventArgs e)
     {
+        DetectionLog.Write($"[rec] FAILED: {e.Error}");
         IsRecording = false;
-        CleanupRecorder();
+        DisposeRecorderOffThread();
         StateChanged?.Invoke(this, EventArgs.Empty);
         Failed?.Invoke(this, e.Error ?? "Recording failed.");
         CurrentFilePath = null;
     }
 
-    private void CleanupRecorder()
+    /// <summary>Detach event handlers and return the recorder instance, clearing the field.</summary>
+    private Recorder? DetachRecorder()
     {
-        if (_recorder is null)
-            return;
-        _recorder.OnRecordingComplete -= OnComplete;
-        _recorder.OnRecordingFailed -= OnFailed;
-        try { _recorder.Dispose(); } catch { }
+        var rec = _recorder;
         _recorder = null;
+        if (rec is not null)
+        {
+            rec.OnRecordingComplete -= OnComplete;
+            rec.OnRecordingFailed -= OnFailed;
+        }
+        return rec;
+    }
+
+    /// <summary>
+    /// Dispose the recorder on a thread pool thread. Disposing it directly inside its own
+    /// OnRecordingComplete/Failed callback deadlocks, because Dispose joins the very capture
+    /// thread that is raising the event. Deferring off-thread avoids the hang.
+    /// </summary>
+    private void DisposeRecorderOffThread()
+    {
+        var rec = DetachRecorder();
+        if (rec is null)
+            return;
+        Task.Run(() =>
+        {
+            try { rec.Dispose(); }
+            catch (Exception ex) { DetectionLog.Write($"[rec] dispose error: {ex.Message}"); }
+        });
     }
 
     private static RecorderOptions BuildOptions(AppSettings s)

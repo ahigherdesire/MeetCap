@@ -41,8 +41,14 @@ public partial class MeetingPromptWindow : Window
             var def = buttons[i];
             var btn = new Button
             {
-                Content = def.Text,
-                Height = 38,
+                Content = new TextBlock
+                {
+                    Text = def.Text,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center,
+                },
+                MinHeight = 40,
+                Padding = new Thickness(14, 8, 14, 8),
                 Margin = new Thickness(0, i == 0 ? 0 : 8, 0, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 FontSize = 13.5,
@@ -78,6 +84,8 @@ public partial class MeetingPromptWindow : Window
         var content = new FrameworkElementFactory(typeof(ContentPresenter));
         content.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         content.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        content.SetBinding(ContentPresenter.MarginProperty, new System.Windows.Data.Binding("Padding")
+        { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
         border.AppendChild(content);
         template.VisualTree = border;
         return template;

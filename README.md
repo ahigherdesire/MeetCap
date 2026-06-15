@@ -26,15 +26,26 @@ MeetCap polls a few **local, read-only** signals every ~3 seconds — nothing is
 
 | Signal | Used for |
 | --- | --- |
-| Running processes (`Zoom`, `ms-teams`, browsers) | Which app might be in a call |
-| Visible window / browser-tab titles (`"Zoom Meeting"`, `"Google Meet"`, …) | Platform attribution |
-| Microphone / camera in-use (Capability Access Manager registry) | Confirms a *live* call vs. just an open tab |
+| **Per-process audio sessions** (Windows Core Audio) | The primary "in a call" signal — attributed to the *specific* app, and active even when you're muted (you still hear the call) |
+| **UI Automation** (accessibility tree) | Authoritative confirmation for Teams/Zoom desktop — finds the in-call "Leave"/"Hang up" control; also catches a muted + deafened + camera-off call |
+| Visible window / browser-tab titles | Platform attribution (`"Zoom Meeting"`, `"Google Meet"`, …) |
+| Running processes | Which apps are candidates |
+| Webcam in-use (Capability Access Manager registry) | Extra corroboration |
 
-Browser-hosted meetings additionally require the mic or camera to be active, which distinguishes
-"in a meeting" from "has the page open." Meeting-end is debounced so a brief title flicker won't
-stop a recording.
+Detection is **layered by confidence**: a UI-Automation hit or Zoom's dedicated meeting window is
+treated as definitive; otherwise a per-process audio session on the matching app (browsers also need
+a matching tab title) triggers it. Start is confirmed over two polls (so a one-off notification sound
+can't trigger a prompt) and end is debounced over several polls (so a brief flicker won't stop a
+recording).
 
-There is **no screen scraping, no code injection, and no network access** in the detection path.
+There is **no screen scraping, no code injection, and no network access** in the detection path —
+UI Automation is the same read-only accessibility API that screen readers use.
+
+> **On "100% accuracy":** the desktop path (UI Automation + audio) is about as reliable as a
+> non-invasive method gets. The honest residual limits: UI-Automation control names are localized
+> (tune `LeaveHints` in [UiAutomationDetector.cs](src/MeetCap/Services/UiAutomationDetector.cs) for
+> other languages), and browser meetings still rely on audio + tab title. A literal 100% for web
+> meetings would require a companion browser extension reading the page's real call state.
 
 ---
 
@@ -49,11 +60,13 @@ src/MeetCap/
   Models/                    AppSettings, RecordingQuality, MeetingPlatform, RecordingItem
   Interop/
     WindowEnumerator.cs      EnumWindows -> visible window titles + owning process (read-only)
-    MediaUsageMonitor.cs     Mic/cam "in use" via ConsentStore registry
+    ProcessAudioMonitor.cs   Per-process active audio sessions (Core Audio) — primary call signal
+    MediaUsageMonitor.cs     Mic/cam "in use" via ConsentStore registry (corroborator)
     NativeScreen.cs          Primary-display pixel size (GetSystemMetrics)
   Services/
     SettingsService.cs       JSON settings in %APPDATA%\MeetCap
     AutoStartService.cs      Start-on-sign-in via HKCU\...\Run (easy to toggle)
+    UiAutomationDetector.cs  Reads Teams/Zoom in-call controls via UI Automation (FlaUI)
     MeetingDetectionService  Polls signals; raises MeetingStarted / MeetingEnded
     RecordingService.cs      ScreenRecorderLib wrapper (screen + system + mic -> MP4)
     RecordingLibraryService  Lists recent recordings; open/reveal in Explorer
@@ -67,6 +80,8 @@ src/MeetCap/
 - **.NET 8** (LTS), **WPF**, **WPF-UI** (Fluent look)
 - **CommunityToolkit.Mvvm** for MVVM
 - **ScreenRecorderLib** for capture + encoding
+- **NAudio** for per-process audio-session detection
+- **FlaUI** (UI Automation) for desktop in-call confirmation
 - **Hardcodet.NotifyIcon.Wpf** for the tray icon
 - **Inno Setup** for the install wizard
 

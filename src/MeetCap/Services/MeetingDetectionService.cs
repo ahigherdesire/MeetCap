@@ -19,7 +19,8 @@ namespace MeetCap.Services;
 public sealed partial class MeetingDetectionService : IMeetingDetectionService, IDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
-    private const int EndGraceTicks = 3; // ~9s of "no meeting" before we declare it ended.
+    private const int StartConfirmTicks = 2; // require the same platform twice (~3s) before starting.
+    private const int EndGraceTicks = 3;     // ~9s of "no meeting" before we declare it ended.
 
     private static readonly HashSet<string> BrowserProcesses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -27,9 +28,12 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
     };
 
     private readonly ISettingsService _settings;
+    private readonly UiAutomationDetector _uia;
     private readonly object _gate = new();
     private Timer? _timer;
     private int _missCount;
+    private MeetingPlatform _candidate = MeetingPlatform.Unknown;
+    private int _candidateHits;
 
     public bool IsRunning { get; private set; }
     public bool IsMeetingActive { get; private set; }
@@ -38,12 +42,17 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
     public event EventHandler<MeetingEventArgs>? MeetingStarted;
     public event EventHandler<MeetingEventArgs>? MeetingEnded;
 
-    public MeetingDetectionService(ISettingsService settings) => _settings = settings;
+    public MeetingDetectionService(ISettingsService settings, UiAutomationDetector uia)
+    {
+        _settings = settings;
+        _uia = uia;
+    }
 
     public void Start()
     {
         if (IsRunning) return;
         IsRunning = true;
+        DetectionLog.Write("=== Detection service started ===");
         _timer = new Timer(_ => SafeTick(), null, TimeSpan.FromSeconds(1), PollInterval);
     }
 
@@ -57,7 +66,7 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
     private void SafeTick()
     {
         try { Tick(); }
-        catch { /* Detection must never crash the app. */ }
+        catch (Exception ex) { DetectionLog.Write($"!!! TICK ERROR: {ex.GetType().Name}: {ex.Message}"); }
     }
 
     private void Tick()
@@ -72,21 +81,32 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
             if (platform != MeetingPlatform.Unknown)
             {
                 _missCount = 0;
-                if (!IsMeetingActive)
+
+                // Require the same platform on consecutive polls before starting, so a
+                // transient sound (e.g. a Teams notification "ding") doesn't trigger a prompt.
+                _candidateHits = platform == _candidate ? _candidateHits + 1 : 1;
+                _candidate = platform;
+
+                if (!IsMeetingActive && _candidateHits >= StartConfirmTicks)
                 {
                     IsMeetingActive = true;
                     CurrentPlatform = platform;
+                    DetectionLog.Write($">>> MEETING STARTED: {platform} ({detail}) — firing popup");
                     MeetingStarted?.Invoke(this, new MeetingEventArgs { Platform = platform, Detail = detail });
                 }
             }
-            else if (IsMeetingActive)
+            else
             {
-                if (++_missCount >= EndGraceTicks)
+                _candidate = MeetingPlatform.Unknown;
+                _candidateHits = 0;
+
+                if (IsMeetingActive && ++_missCount >= EndGraceTicks)
                 {
                     var ended = CurrentPlatform;
                     IsMeetingActive = false;
                     CurrentPlatform = MeetingPlatform.Unknown;
                     _missCount = 0;
+                    DetectionLog.Write($"<<< MEETING ENDED: {ended}");
                     MeetingEnded?.Invoke(this, new MeetingEventArgs { Platform = ended });
                 }
             }
@@ -98,38 +118,86 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
     {
         var windows = WindowEnumerator.GetVisibleWindows();
         var processes = RunningProcessNames();
-        bool mediaActive = MediaUsageMonitor.IsAnyInUse();
 
-        // 1) Zoom desktop client — its dedicated meeting window is definitive.
-        if (processes.Contains("Zoom") || processes.Contains("Zoom.exe"))
+        // Primary "in a call" signal: which processes have a live audio session right now.
+        // This is per-process (correct attribution) and stays active even when you're muted,
+        // because you're still hearing the meeting (an active render session).
+        var audio = ProcessAudioMonitor.GetProcessNamesWithActiveAudio();
+        bool HasAudio(params string[] names) => names.Any(audio.Contains);
+
+        // Webcam is a strong, independent corroborator for the rare "muted + deafened" case.
+        bool webcam = MediaUsageMonitor.IsWebcamInUse();
+
+        bool zoomRunning = processes.Contains("Zoom") || processes.Contains("Zoom.exe");
+        bool teamsRunning = processes.Contains("ms-teams") || processes.Contains("msteams") || processes.Contains("Teams");
+
+        // UI Automation confirmation for the desktop clients: looks for the in-call control surface
+        // (a "Leave"/"Hang up" button). It runs on a background thread (never blocks detection) and
+        // only targets an app that currently has audio — i.e. a likely call — so it never churns
+        // walking an idle Teams/Zoom accessibility tree (which is very slow for the WebView2 client).
+        var uiaTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (zoomRunning && HasAudio("Zoom")) uiaTargets.Add("Zoom");
+        if (teamsRunning && HasAudio("ms-teams", "msteams", "Teams"))
         {
-            var w = windows.FirstOrDefault(w =>
-                IsZoomLike(w.ProcessName) && ZoomMeetingTitle().IsMatch(w.Title));
-            if (!w.Equals(default(WindowInfo)) && !string.IsNullOrEmpty(w.Title))
-                return (MeetingPlatform.ZoomDesktop, w.Title);
+            uiaTargets.Add("ms-teams"); uiaTargets.Add("msteams"); uiaTargets.Add("Teams");
+        }
+        var inCallUia = _uia.GetInCallProcessNames(uiaTargets);
+        bool UiaInCall(params string[] names) => names.Any(inCallUia.Contains);
+
+        (MeetingPlatform Platform, string? Detail) result = (MeetingPlatform.Unknown, null);
+
+        // 1) Zoom desktop — dedicated "Zoom Meeting" window is definitive; UIA / audio / cam confirm.
+        if (zoomRunning)
+        {
+            var w = windows.FirstOrDefault(x => IsZoomLike(x.ProcessName) && ZoomMeetingTitle().IsMatch(x.Title));
+            if (!string.IsNullOrEmpty(w.Title))
+                result = (MeetingPlatform.ZoomDesktop, w.Title);
+            else if (UiaInCall("Zoom"))
+                result = (MeetingPlatform.ZoomDesktop, "Zoom call (UI Automation)");
+            else if (HasAudio("Zoom") || webcam)
+                result = (MeetingPlatform.ZoomDesktop, "Zoom audio/camera active");
         }
 
-        // 2) Browser-hosted meetings — title attributes the platform; mic/cam confirms a live call.
-        foreach (var w in windows)
+        // 2) Browser-hosted meetings — the tab title attributes the platform; an active audio
+        //    session on *that browser* (or the webcam) confirms it's a live call, not just an open tab.
+        if (result.Platform == MeetingPlatform.Unknown)
         {
-            if (!BrowserProcesses.Contains(w.ProcessName))
-                continue;
+            foreach (var w in windows)
+            {
+                if (!BrowserProcesses.Contains(w.ProcessName))
+                    continue;
 
-            if (GoogleMeetTitle().IsMatch(w.Title) && mediaActive)
-                return (MeetingPlatform.GoogleMeet, w.Title);
+                bool live = HasAudio(w.ProcessName) || webcam;
+                if (!live)
+                    continue;
 
-            if (TeamsWebTitle().IsMatch(w.Title) && mediaActive)
-                return (MeetingPlatform.TeamsWeb, w.Title);
-
-            if (ZoomWebTitle().IsMatch(w.Title) && mediaActive)
-                return (MeetingPlatform.ZoomWeb, w.Title);
+                if (GoogleMeetTitle().IsMatch(w.Title)) { result = (MeetingPlatform.GoogleMeet, w.Title); break; }
+                if (TeamsWebTitle().IsMatch(w.Title)) { result = (MeetingPlatform.TeamsWeb, w.Title); break; }
+                if (ZoomWebTitle().IsMatch(w.Title)) { result = (MeetingPlatform.ZoomWeb, w.Title); break; }
+            }
         }
 
-        // 3) Microsoft Teams desktop — running client plus an active mic/cam session.
-        if (mediaActive && (processes.Contains("ms-teams") || processes.Contains("msteams") || processes.Contains("Teams")))
-            return (MeetingPlatform.TeamsDesktop, "Microsoft Teams call");
+        // 3) Microsoft Teams desktop — the client is almost always running, so a definitive UIA hit
+        //    wins; otherwise an active Teams audio session (caught even when muted) or the webcam.
+        if (result.Platform == MeetingPlatform.Unknown && teamsRunning)
+        {
+            if (UiaInCall("ms-teams", "msteams", "Teams"))
+                result = (MeetingPlatform.TeamsDesktop, "Teams call (UI Automation)");
+            else if (HasAudio("ms-teams", "msteams", "Teams") || webcam)
+                result = (MeetingPlatform.TeamsDesktop, "Microsoft Teams call");
+        }
 
-        return (MeetingPlatform.Unknown, null);
+        // Diagnostic snapshot of everything the detector saw this tick.
+        var browserTabs = windows
+            .Where(w => BrowserProcesses.Contains(w.ProcessName))
+            .Select(w => $"{w.ProcessName}:{w.Title}")
+            .ToList();
+        DetectionLog.Write(
+            $"detect={result.Platform} | audio=[{string.Join(",", audio)}] | webcam={webcam} | " +
+            $"teamsRunning={teamsRunning} zoomRunning={zoomRunning} | uiaInCall=[{string.Join(",", inCallUia)}] | " +
+            $"browserWindows=[{string.Join(" || ", browserTabs)}]");
+
+        return result;
     }
 
     private static bool IsZoomLike(string proc) =>

@@ -25,6 +25,23 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Hidden diagnostic: show the detection popup standalone (for visual QA).
+        if (e.Args.Any(a => a.Equals("--demo-popup", StringComparison.OrdinalIgnoreCase)))
+        {
+            var demo = new MeetingPromptWindow(
+                "Meeting detected",
+                "You appear to be in a Google Meet meeting. Do you want to record it?",
+                new[]
+                {
+                    new PromptButton("Start recording", "start", IsPrimary: true),
+                    new PromptButton("Always record Google Meet", "always"),
+                    new PromptButton("Ignore", "ignore"),
+                },
+                "ignore", TimeSpan.FromMinutes(10));
+            demo.Show();
+            return;
+        }
+
         // Single instance: if MeetCap is already running, just exit (the running copy stays).
         _singleInstanceMutex = new Mutex(initiallyOwned: true, MutexName, out bool isNew);
         _ownsMutex = isNew;
@@ -65,6 +82,7 @@ public partial class App : Application
         sc.AddSingleton<IAutoStartService, AutoStartService>();
         sc.AddSingleton<IRecordingService, RecordingService>();
         sc.AddSingleton<IRecordingLibraryService, RecordingLibraryService>();
+        sc.AddSingleton<UiAutomationDetector>();
         sc.AddSingleton<IMeetingDetectionService, MeetingDetectionService>();
         sc.AddSingleton<NotificationCoordinator>();
 

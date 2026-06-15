@@ -1,122 +1,141 @@
-# MeetCapppp - Consent-first meeting recorder
+# MeetCap
 
-A modern, privacy-first web/desktop app for recording **your own** Google Meet and
-Zoom sessions. Recording only ever starts after you explicitly click **Start
-Recording** never secretly, never automatically.
+A simple, reliable meeting recorder for Windows. MeetCap watches for online meetings,
+asks if you want to record, and saves a clean MP4 of your screen plus system and microphone
+audio — with a clear on-screen indicator the whole time. It lives quietly in the system tray
+and starts with Windows.
 
-> ⚠️ **Consent matters.** Depending on local laws and workplace policy, you may need
-> participants' consent before recording. MeetCap always shows a clear indicator
-> while recording and reminds you about consent — it never records in stealth and
-> never bypasses browser, OS, Meet, or Zoom permissions.
+![Dashboard](meetcap-dashboard.png)
 
-## Features
+---
 
-- **Consent-first capture** explicit start, always-visible recording indicator.
-- **Meeting detection**  recognizes Google Meet / Zoom from the shared surface, with
-  pluggable adapters for a companion browser extension or desktop shell.
-- **Non-intrusive detection popup** — "Meeting detected. Would you like to start recording?"
-- **Full recording controls**  pause, resume, stop, save.
-- **Screen + audio capture** tab/system audio and microphone, mixed via WebAudio.
-- **Clean summary screen**  title, date/time, duration, file size, save location, rename.
-- **Recordings library**  search, play, download, rename, delete.
-- **Privacy-first settings**  explains exactly what is stored and where.
-- **Permissions screen**  review and test screen, mic, and storage access.
-- **Robust error & recovery**  permission denied, no audio source, interruption,
-  storage full, unsupported browser, meeting ended.
-- **Polished UX**  modern SaaS UI, responsive, dark/light/system themes, smooth
-  animations (respects `prefers-reduced-motion`), keyboard-accessible, toast feedback.
+## Highlights
 
-## Tech stack
+- **Modern Windows 11 UI** — WPF + [WPF-UI](https://github.com/lepoco/wpfui) Fluent styling, dark theme, Mica backdrop.
+- **Runs in the background** — minimizes to the tray instead of closing; optional start-on-sign-in.
+- **Meeting detection** — Zoom & Teams desktop clients, plus Google Meet / Zoom Web / Teams Web in browsers.
+- **Consent-first** — nothing is ever recorded without your action; a floating red indicator shows when recording is live.
+- **High-quality capture** — `Windows.Graphics.Capture` + Media Foundation hardware H.264 (NVENC/QuickSync/AMF) into a single corruption-resistant MP4.
+- **Zero-dependency install** — ships self-contained, so end users don't need to install .NET.
 
-- **React 18 + TypeScript + Vite**
-- **Tailwind CSS** (dark mode via class strategy)
-- **Framer Motion** for animations
-- **Zustand** for state
-- **IndexedDB** (via `idb`) for local recording storage
-- **MediaRecorder + getDisplayMedia/getUserMedia** for capture
+---
 
-## Getting started
+## How detection works (safe signals only)
 
-```bash
-cd meetcap
-npm install
-npm run dev      # http://localhost:5173
+MeetCap polls a few **local, read-only** signals every ~3 seconds — nothing is sent anywhere:
+
+| Signal | Used for |
+| --- | --- |
+| Running processes (`Zoom`, `ms-teams`, browsers) | Which app might be in a call |
+| Visible window / browser-tab titles (`"Zoom Meeting"`, `"Google Meet"`, …) | Platform attribution |
+| Microphone / camera in-use (Capability Access Manager registry) | Confirms a *live* call vs. just an open tab |
+
+Browser-hosted meetings additionally require the mic or camera to be active, which distinguishes
+"in a meeting" from "has the page open." Meeting-end is debounced so a brief title flicker won't
+stop a recording.
+
+There is **no screen scraping, no code injection, and no network access** in the detection path.
+
+---
+
+## Architecture
+
+A normal interactive **user-session** app (deliberately *not* a Windows Service — screen and audio
+capture only work in the interactive session, never in Session 0).
+
+```
+src/MeetCap/
+  App.xaml(.cs)              Composition root: DI, single-instance, tray icon, lifecycle
+  Models/                    AppSettings, RecordingQuality, MeetingPlatform, RecordingItem
+  Interop/
+    WindowEnumerator.cs      EnumWindows -> visible window titles + owning process (read-only)
+    MediaUsageMonitor.cs     Mic/cam "in use" via ConsentStore registry
+    NativeScreen.cs          Primary-display pixel size (GetSystemMetrics)
+  Services/
+    SettingsService.cs       JSON settings in %APPDATA%\MeetCap
+    AutoStartService.cs      Start-on-sign-in via HKCU\...\Run (easy to toggle)
+    MeetingDetectionService  Polls signals; raises MeetingStarted / MeetingEnded
+    RecordingService.cs      ScreenRecorderLib wrapper (screen + system + mic -> MP4)
+    RecordingLibraryService  Lists recent recordings; open/reveal in Explorer
+    NotificationCoordinator  Detected -> ask/auto-record -> indicator -> ended -> ask to stop
+  ViewModels/                MVVM (CommunityToolkit.Mvvm): Main / Dashboard / Settings
+  Views/                     MainWindow (FluentWindow), Dashboard/Settings pages,
+                             MeetingPromptWindow (toast), RecordingIndicatorWindow
 ```
 
-Build for production:
+### Stack
+- **.NET 8** (LTS), **WPF**, **WPF-UI** (Fluent look)
+- **CommunityToolkit.Mvvm** for MVVM
+- **ScreenRecorderLib** for capture + encoding
+- **Hardcodet.NotifyIcon.Wpf** for the tray icon
+- **Inno Setup** for the install wizard
 
-```bash
-npm run build
-npm run preview
+---
+
+## Build & run (developers)
+
+> Requires the **.NET SDK** and builds for **x64** (ScreenRecorderLib is x64-only).
+
+```powershell
+# Build
+dotnet build MeetCap.sln -c Debug
+
+# Run
+dotnet run --project src/MeetCap/MeetCap.csproj
 ```
 
-Use a recent **desktop** Chrome, Edge, or Firefox — screen capture (`getDisplayMedia`)
-is required. To capture call audio, tick **"Share tab audio"** in the browser's share
-picker.
+The `.sln` is configured for `x64`. If you build the `.csproj` directly with the bare
+`dotnet build`, pass `-p:Platform=x64`.
 
-## Desktop app (background detection) — recommended
+## Package (self-contained)
 
-The web build is sandboxed: it can only detect the surface you choose to share. For
-**true system-wide, background detection** — a popup that appears automatically at the
-start of *any* Zoom or Google Meet call, no matter which browser tab or app it's in —
-run the **Electron desktop app**:
-
-```bash
-npm run electron:dev     # dev: Vite + Electron with hot reload
-npm run dist             # build installers into release/ (Windows .exe / macOS .dmg / Linux AppImage)
+```powershell
+powershell -File build/publish.ps1
+# -> artifacts/publish  (app + .NET runtime + native capture DLLs)
 ```
 
-What the desktop shell adds over the web app:
+## Build the installer
 
-- **Runs in the system tray** in the background — no window needed.
-- **System-wide meeting detection** — the main process polls OS window titles every
-  few seconds (`electron/detection.cjs`) to spot a live "Zoom Meeting" window or a
-  browser tab titled "Meet - …", across the native Zoom client and any browser.
-- **Native always-on-top popup** (`electron/popup.html`) — *"Meeting detected. Would
-  you like to start recording?"* — shown automatically when a call starts. Recording
-  still only begins when you click **Start Recording**.
-- **System (loopback) audio capture** on Windows/Linux via Electron's
-  `setDisplayMediaRequestHandler` — something a browser tab cannot do.
+```powershell
+winget install JRSoftware.InnoSetup     # one-time
+powershell -File build/make-installer.ps1
+# -> artifacts/installer/MeetCap-Setup-1.0.0.exe
+```
 
-This is **read-only observation of window titles** — it never injects into, scrapes,
-or bypasses Zoom, Meet, the browser, or the OS. Detection can be toggled from the tray
-menu or **Settings → Auto-detect meetings**.
+The installer drops a Start Menu (and optional desktop) shortcut, offers to launch MeetCap
+minimized to the tray, and cleans up its start-on-sign-in entry on uninstall. Your recordings
+in `Videos\MeetCap` are never touched.
 
-| Desktop file                 | Role                                              |
-| ---------------------------- | ------------------------------------------------- |
-| `electron/main.cjs`          | App lifecycle, tray, windows, IPC, capture grants |
-| `electron/detection.cjs`     | Background window-title meeting detector          |
-| `electron/popup.html`        | Native detection popup UI                         |
-| `electron/preload.cjs`       | Secure bridge to the React renderer               |
-| `electron/popup-preload.cjs` | Secure bridge for the popup                        |
-| `electron/make-icon.cjs`     | Generates the app/tray icon PNG (no native deps)  |
+### Zero-install for end users
 
-## Architecture notes
+The published app is fully self-sufficient — users do **not** install anything:
 
-| Concern            | Where                          |
-| ------------------ | ------------------------------ |
-| Capture engine     | `src/lib/recorder.ts`          |
-| Meeting detection  | `src/lib/detection.ts`         |
-| Local storage      | `src/lib/db.ts` (IndexedDB)    |
-| App state/actions  | `src/store/useStore.ts`        |
-| UI pages           | `src/pages/*`                  |
-| Overlays/controls  | `src/components/*`             |
+- **.NET 8 runtime** — bundled inside the self-contained publish.
+- **Windows system DLLs** (Media Foundation, Direct3D, UCRT) — already part of Windows 10/11.
+- **Visual C++ runtime** (`MSVCP140` / `VCRUNTIME140` / `CONCRT140`, required by ScreenRecorderLib's
+  C++/CLI core) — shipped **app-local** by `build/publish.ps1`, copied next to the exe where they take
+  load priority. No VC++ redistributable install and no admin step needed.
 
-### Detection beyond a single tab
+> The app-local VC++ DLLs are copied from the build machine's `System32`. Build on an up-to-date
+> Windows with the VC++ 2015–2022 x64 runtime present (any dev machine with Visual Studio has it).
 
-A sandboxed web page cannot read other browser tabs or OS window titles. MeetCap
-exposes two adapter stubs in `detection.ts` so this can be wired up in production:
+---
 
-- **`browserExtensionAdapter`** — a companion extension with the `tabs` permission
-  posts active Meet/Zoom URLs via `window.postMessage` (stub provided).
-- **`desktopAdapter`** — **implemented** in the Electron build (see above): the main
-  process inspects OS window titles and drives the native popup, then triggers
-  recording in the renderer through `window.meetcapDesktop`.
+## Recordings
 
-When neither is present, MeetCap detects the meeting from the surface you *choose* to
-share (reading the capture track label), which never bypasses any permission.
+- Default folder: `Videos\MeetCap` (changeable in Settings).
+- File names: `2026-06-15_14-30_Google-Meet_Recording.mp4`
+- Quality tiers:
+  - **Standard** — 1080p, 30 fps, smaller files
+  - **High** — native resolution, 30 fps
+  - **Ultra** — native resolution, 60 fps, best quality
+- Fragmented + fast-start MP4 keeps files playable even if the session is interrupted.
 
-### Future-ready cloud upload
+---
 
-`Settings → Cloud upload` is a stubbed, opt-in module. Recordings are always saved
-locally first; a cloud target can be added without touching the capture pipeline.
+## Privacy
+
+MeetCap is consent-first. Detection uses only local signals, recording always starts from your
+explicit choice (or a per-platform "record automatically" you set yourself), and a visible
+indicator stays on screen while recording. Always make sure other participants are aware that a
+meeting is being recorded, as required by the laws in your area.

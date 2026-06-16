@@ -14,20 +14,31 @@ namespace MeetCap.Interop;
 ///  * It catches <b>muted</b> participants: you still hear the meeting, so the app keeps an
 ///    active render (playback) session open even when your microphone is muted.
 /// </summary>
+/// <summary>
+/// Active audio sessions split by direction. <see cref="Capture"/> (microphone) is the strong
+/// "actually in a call" signal — playing a YouTube video only opens a <see cref="Render"/>
+/// (playback) session, while joining a call opens a microphone capture session.
+/// </summary>
+public readonly record struct AudioActivity(HashSet<string> Render, HashSet<string> Capture)
+{
+    public bool HasMic(params string[] names) => names.Any(Capture.Contains);
+    public bool HasAny(string name) => Render.Contains(name) || Capture.Contains(name);
+    public IEnumerable<string> All => Render.Concat(Capture).Distinct(StringComparer.OrdinalIgnoreCase);
+}
+
 public static class ProcessAudioMonitor
 {
-    /// <summary>Lower-cased process names that have at least one active audio session.</summary>
-    public static HashSet<string> GetProcessNamesWithActiveAudio()
+    /// <summary>Active audio sessions, separated into playback (render) and microphone (capture).</summary>
+    public static AudioActivity GetActivity()
     {
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var render = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var capture = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         MMDeviceEnumerator? enumerator = null;
         try
         {
             enumerator = new MMDeviceEnumerator();
-            // Render = audio you hear (active during a call even when muted);
-            // Capture = your microphone.
-            Collect(enumerator, DataFlow.Render, names);
-            Collect(enumerator, DataFlow.Capture, names);
+            Collect(enumerator, DataFlow.Render, render);
+            Collect(enumerator, DataFlow.Capture, capture);
         }
         catch
         {
@@ -37,7 +48,7 @@ public static class ProcessAudioMonitor
         {
             enumerator?.Dispose();
         }
-        return names;
+        return new AudioActivity(render, capture);
     }
 
     private static void Collect(MMDeviceEnumerator enumerator, DataFlow flow, HashSet<string> names)

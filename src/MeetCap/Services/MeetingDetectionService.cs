@@ -119,13 +119,14 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
         var windows = WindowEnumerator.GetVisibleWindows();
         var processes = RunningProcessNames();
 
-        // Primary "in a call" signal: which processes have a live audio session right now.
-        // This is per-process (correct attribution) and stays active even when you're muted,
-        // because you're still hearing the meeting (an active render session).
-        var audio = ProcessAudioMonitor.GetProcessNamesWithActiveAudio();
-        bool HasAudio(params string[] names) => names.Any(audio.Contains);
+        // Primary "in a call" signal: which processes have an active MICROPHONE (capture) session.
+        // This is the key precision signal — playing a YouTube video opens only a playback (render)
+        // session, whereas joining a call opens a microphone capture session. Using the mic signal
+        // avoids false positives like "a Meet tab is open while music plays in another tab".
+        var audio = ProcessAudioMonitor.GetActivity();
+        bool HasMic(params string[] names) => audio.HasMic(names);
 
-        // Webcam is a strong, independent corroborator for the rare "muted + deafened" case.
+        // Webcam is a strong, independent corroborator (camera on => almost certainly a call).
         bool webcam = MediaUsageMonitor.IsWebcamInUse();
 
         bool zoomRunning = processes.Contains("Zoom") || processes.Contains("Zoom.exe");
@@ -133,11 +134,11 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
 
         // UI Automation confirmation for the desktop clients: looks for the in-call control surface
         // (a "Leave"/"Hang up" button). It runs on a background thread (never blocks detection) and
-        // only targets an app that currently has audio — i.e. a likely call — so it never churns
+        // only targets an app that currently uses the mic — i.e. a likely call — so it never churns
         // walking an idle Teams/Zoom accessibility tree (which is very slow for the WebView2 client).
         var uiaTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (zoomRunning && HasAudio("Zoom")) uiaTargets.Add("Zoom");
-        if (teamsRunning && HasAudio("ms-teams", "msteams", "Teams"))
+        if (zoomRunning && HasMic("Zoom")) uiaTargets.Add("Zoom");
+        if (teamsRunning && HasMic("ms-teams", "msteams", "Teams"))
         {
             uiaTargets.Add("ms-teams"); uiaTargets.Add("msteams"); uiaTargets.Add("Teams");
         }
@@ -146,7 +147,7 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
 
         (MeetingPlatform Platform, string? Detail) result = (MeetingPlatform.Unknown, null);
 
-        // 1) Zoom desktop — dedicated "Zoom Meeting" window is definitive; UIA / audio / cam confirm.
+        // 1) Zoom desktop — dedicated "Zoom Meeting" window is definitive; UIA / mic / cam confirm.
         if (zoomRunning)
         {
             var w = windows.FirstOrDefault(x => IsZoomLike(x.ProcessName) && ZoomMeetingTitle().IsMatch(x.Title));
@@ -154,12 +155,13 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
                 result = (MeetingPlatform.ZoomDesktop, w.Title);
             else if (UiaInCall("Zoom"))
                 result = (MeetingPlatform.ZoomDesktop, "Zoom call (UI Automation)");
-            else if (HasAudio("Zoom") || webcam)
-                result = (MeetingPlatform.ZoomDesktop, "Zoom audio/camera active");
+            else if (HasMic("Zoom") || webcam)
+                result = (MeetingPlatform.ZoomDesktop, "Zoom mic/camera active");
         }
 
-        // 2) Browser-hosted meetings — the tab title attributes the platform; an active audio
-        //    session on *that browser* (or the webcam) confirms it's a live call, not just an open tab.
+        // 2) Browser-hosted meetings — the tab title attributes the platform; the browser must have
+        //    an active MICROPHONE session (or webcam) to confirm a live call. A merely-open Meet tab
+        //    with music playing elsewhere has no mic session, so it won't false-trigger.
         if (result.Platform == MeetingPlatform.Unknown)
         {
             foreach (var w in windows)
@@ -167,7 +169,7 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
                 if (!BrowserProcesses.Contains(w.ProcessName))
                     continue;
 
-                bool live = HasAudio(w.ProcessName) || webcam;
+                bool live = HasMic(w.ProcessName) || webcam;
                 if (!live)
                     continue;
 
@@ -178,12 +180,12 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
         }
 
         // 3) Microsoft Teams desktop — the client is almost always running, so a definitive UIA hit
-        //    wins; otherwise an active Teams audio session (caught even when muted) or the webcam.
+        //    wins; otherwise an active Teams microphone session (caught even when muted) or the webcam.
         if (result.Platform == MeetingPlatform.Unknown && teamsRunning)
         {
             if (UiaInCall("ms-teams", "msteams", "Teams"))
                 result = (MeetingPlatform.TeamsDesktop, "Teams call (UI Automation)");
-            else if (HasAudio("ms-teams", "msteams", "Teams") || webcam)
+            else if (HasMic("ms-teams", "msteams", "Teams") || webcam)
                 result = (MeetingPlatform.TeamsDesktop, "Microsoft Teams call");
         }
 
@@ -193,9 +195,9 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
             .Select(w => $"{w.ProcessName}:{w.Title}")
             .ToList();
         DetectionLog.Write(
-            $"detect={result.Platform} | audio=[{string.Join(",", audio)}] | webcam={webcam} | " +
-            $"teamsRunning={teamsRunning} zoomRunning={zoomRunning} | uiaInCall=[{string.Join(",", inCallUia)}] | " +
-            $"browserWindows=[{string.Join(" || ", browserTabs)}]");
+            $"detect={result.Platform} | mic=[{string.Join(",", audio.Capture)}] | playback=[{string.Join(",", audio.Render)}] | " +
+            $"webcam={webcam} | teamsRunning={teamsRunning} zoomRunning={zoomRunning} | " +
+            $"uiaInCall=[{string.Join(",", inCallUia)}] | browserWindows=[{string.Join(" || ", browserTabs)}]");
 
         return result;
     }

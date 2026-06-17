@@ -138,5 +138,25 @@ public partial class DashboardViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void DeleteRecording(RecordingItem? item)
+    {
+        if (item is null) return;
+
+        var answer = System.Windows.MessageBox.Show(
+            $"Move this recording to the Recycle Bin?\n\n{item.FileName}",
+            "Delete recording", System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+        if (answer != System.Windows.MessageBoxResult.Yes)
+            return;
+
+        if (_library.Delete(item.FilePath))
+            RefreshRecordings();
+        else
+            System.Windows.MessageBox.Show(
+                "Couldn't delete the file — it may be open in another app.",
+                "MeetCap", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+    }
+
+    [RelayCommand]
     private void Refresh() => RefreshRecordings();
 }

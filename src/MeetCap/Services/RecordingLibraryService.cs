@@ -9,6 +9,8 @@ public interface IRecordingLibraryService
     IReadOnlyList<RecordingItem> GetRecent(int max = 25);
     void OpenFolder();
     void RevealInExplorer(string filePath);
+    /// <summary>Send a recording to the Recycle Bin (recoverable). Returns true on success.</summary>
+    bool Delete(string filePath);
 }
 
 public sealed class RecordingLibraryService : IRecordingLibraryService
@@ -51,5 +53,25 @@ public sealed class RecordingLibraryService : IRecordingLibraryService
             Shell.Run("explorer.exe", $"/select,\"{filePath}\"");
         else
             OpenFolder();
+    }
+
+    public bool Delete(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                // Recycle Bin instead of permanent delete, so an accidental delete is recoverable.
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
+                    filePath,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

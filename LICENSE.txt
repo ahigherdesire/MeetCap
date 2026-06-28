@@ -1,0 +1,80 @@
+MeetCap — End User License Agreement (EULA)
+
+Copyright (c) 2026 [LICENSOR NAME / COMPANY]. All rights reserved.
+
+IMPORTANT — READ CAREFULLY. This End User License Agreement ("Agreement") is a
+legal agreement between you (either an individual or a single entity, "You") and
+[LICENSOR NAME / COMPANY] ("Licensor") for the MeetCap software product, which
+includes the executable software, associated media, and documentation
+("Software"). By installing, copying, or otherwise using the Software, You agree
+to be bound by the terms of this Agreement. If You do not agree, do not install
+or use the Software.
+
+1. LICENSE GRANT
+   Subject to Your payment of the applicable fees and Your compliance with this
+   Agreement, Licensor grants You a non-exclusive, non-transferable, revocable
+   license to install and use one (1) copy of the Software on devices that You
+   own or control, for Your personal or internal business purposes.
+
+2. RESTRICTIONS
+   You may NOT, and may not permit others to:
+   (a) copy (except for one backup copy), sell, rent, lease, sublicense,
+       distribute, or otherwise transfer the Software or any license keys;
+   (b) reverse engineer, decompile, or disassemble the Software, except to the
+       extent expressly permitted by applicable law;
+   (c) modify, adapt, translate, or create derivative works of the Software;
+   (d) remove or alter any proprietary notices or labels on the Software;
+   (e) use the Software to develop a competing product.
+
+3. OWNERSHIP
+   The Software is licensed, not sold. Licensor and its suppliers retain all
+   right, title, and interest, including all intellectual property rights, in and
+   to the Software. This Agreement does not grant You any rights to trademarks or
+   service marks of Licensor.
+
+4. RECORDINGS, PRIVACY, AND LAWFUL USE
+   The Software records screen content and audio only when You initiate or
+   authorize recording. YOU are solely responsible for using the Software in
+   compliance with all applicable laws, including laws requiring the consent of
+   some or all participants before recording a conversation or meeting. You agree
+   to obtain any legally required consent. Licensor is not responsible for Your
+   recordings or Your use of them. Recordings are stored locally on Your device;
+   Licensor does not collect, transmit, or access Your recordings.
+
+5. UPDATES
+   Any updates, upgrades, or supplements provided by Licensor are governed by this
+   Agreement unless accompanied by separate terms.
+
+6. TERM AND TERMINATION
+   This Agreement is effective until terminated. It terminates automatically if
+   You breach any term. Upon termination, You must stop using and destroy all
+   copies of the Software. Sections 3, 7, 8, and 9 survive termination.
+
+7. DISCLAIMER OF WARRANTIES
+   THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. YOU
+   ASSUME THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE.
+
+8. LIMITATION OF LIABILITY
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL LICENSOR BE LIABLE
+   FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR
+   ANY LOSS OF PROFITS, DATA, OR RECORDINGS, ARISING OUT OF OR RELATED TO THE
+   SOFTWARE. LICENSOR'S TOTAL LIABILITY UNDER THIS AGREEMENT SHALL NOT EXCEED THE
+   AMOUNT YOU PAID FOR THE SOFTWARE.
+
+9. GOVERNING LAW
+   This Agreement is governed by the laws of [JURISDICTION], without regard to its
+   conflict-of-laws principles.
+
+10. THIRD-PARTY COMPONENTS
+   The Software includes third-party open-source components listed in
+   THIRD-PARTY-NOTICES.txt, which are provided under their own licenses.
+
+11. CONTACT
+   [LICENSOR NAME / COMPANY] — [support email / website]
+
+-------------------------------------------------------------------------------
+NOTE: This EULA is a starting template, not legal advice. Before selling the
+Software, have a lawyer review and complete the bracketed fields ([LICENSOR
+NAME / COMPANY], [JURISDICTION], contact details) for your situation.

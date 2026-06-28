@@ -27,6 +27,7 @@ OutputBaseFilename=MeetCap-Setup-{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+LicenseFile=..\LICENSE.txt
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; MeetCap installs per-user-visible but to Program Files; needs admin for that folder.

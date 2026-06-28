@@ -159,6 +159,14 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
                 result = (MeetingPlatform.ZoomDesktop, "Zoom mic/camera active");
         }
 
+        // WhatsApp is intentionally NOT a supported platform. If a browser is showing WhatsApp
+        // (Web), any active mic on that browser most likely belongs to a WhatsApp call — so we skip
+        // browser-meeting detection for it, to avoid misattributing it to a background Meet tab.
+        var whatsAppBrowsers = windows
+            .Where(w => BrowserProcesses.Contains(w.ProcessName) && WhatsAppTitle().IsMatch(w.Title))
+            .Select(w => w.ProcessName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         // 2) Browser-hosted meetings — the tab title attributes the platform; the browser must have
         //    an active MICROPHONE session (or webcam) to confirm a live call. A merely-open Meet tab
         //    with music playing elsewhere has no mic session, so it won't false-trigger.
@@ -168,6 +176,8 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
             {
                 if (!BrowserProcesses.Contains(w.ProcessName))
                     continue;
+                if (whatsAppBrowsers.Contains(w.ProcessName))
+                    continue; // mic belongs to a WhatsApp call, not a meeting
 
                 bool live = HasMic(w.ProcessName) || webcam;
                 if (!live)
@@ -224,8 +234,9 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
     [GeneratedRegex(@"\bZoom Meeting\b", RegexOptions.IgnoreCase)]
     private static partial Regex ZoomMeetingTitle();
 
-    // Google Meet sets the title to the meeting name or a code like abc-defg-hij.
-    [GeneratedRegex(@"(Google Meet|\bMeet\b.*\b\w{3,4}-\w{3,4}-\w{3,4}\b|\b\w{3}-\w{4}-\w{3}\b)", RegexOptions.IgnoreCase)]
+    // Google Meet titles look like "Meet – abc-defg-hij" (a 3-4-3 letter code). Require the word
+    // "Meet" together with a Meet-style code so a random hyphenated title can't false-match.
+    [GeneratedRegex(@"(Google Meet|\bMeet\b.*\b[a-z]{3}-[a-z]{4}-[a-z]{3}\b)", RegexOptions.IgnoreCase)]
     private static partial Regex GoogleMeetTitle();
 
     [GeneratedRegex(@"Microsoft Teams", RegexOptions.IgnoreCase)]
@@ -233,6 +244,10 @@ public sealed partial class MeetingDetectionService : IMeetingDetectionService, 
 
     [GeneratedRegex(@"(Zoom Meeting|zoom\.us|Meeting\s*-\s*Zoom)", RegexOptions.IgnoreCase)]
     private static partial Regex ZoomWebTitle();
+
+    // WhatsApp is excluded from detection (not a supported platform).
+    [GeneratedRegex(@"\bWhatsApp\b", RegexOptions.IgnoreCase)]
+    private static partial Regex WhatsAppTitle();
 
     public void Dispose() => Stop();
 }

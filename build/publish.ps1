@@ -46,5 +46,11 @@ if ($missing.Count -gt 0) {
         ($missing -join ', ') + ". Install the VC++ 2015-2022 x64 redistributable and re-run.")
 }
 
+# Ship the license and third-party notices alongside the app.
+foreach ($doc in @("LICENSE.txt", "THIRD-PARTY-NOTICES.txt")) {
+    $src = Join-Path $root $doc
+    if (Test-Path $src) { Copy-Item $src -Destination $outDir -Force }
+}
+
 Write-Host "Published to: $outDir" -ForegroundColor Green
 Get-ChildItem $outDir -Filter "MeetCap.exe" | ForEach-Object { Write-Host ("  " + $_.FullName) }

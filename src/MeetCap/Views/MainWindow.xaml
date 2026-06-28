@@ -51,7 +51,7 @@
 
         <ui:TitleBar Grid.Row="0" Title="MeetCap" Grid.ColumnSpan="2">
             <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="pack://application:,,,/Assets/meetcap.ico" />
+                <ui:ImageIcon Source="pack://application:,,,/Assets/meetcap-tile.png" />
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 
@@ -71,7 +71,8 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,18,0,18">
-                        <Image Source="pack://application:,,,/Assets/meetcap.ico" Width="28" Height="28" />
+                        <Image Source="pack://application:,,,/Assets/meetcap-tile.png" Width="30" Height="30"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
                         <TextBlock Text="MeetCap" FontSize="18" FontWeight="Bold" Margin="10,0,0,0"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />

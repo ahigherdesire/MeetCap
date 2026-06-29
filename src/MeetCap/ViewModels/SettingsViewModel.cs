@@ -10,7 +10,13 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
     private readonly IAutoStartService _autoStart;
+    private readonly ILicenseService _license;
     private bool _loading;
+
+    [ObservableProperty] private string _licenseStatusText = "";
+    [ObservableProperty] private bool _isActivated;
+    [ObservableProperty] private string _licenseKeyInput = "";
+    [ObservableProperty] private string _activationMessage = "";
 
     [ObservableProperty] private string _outputFolder = string.Empty;
     [ObservableProperty] private RecordingQuality _quality;
@@ -30,11 +36,44 @@ public partial class SettingsViewModel : ObservableObject
 
     public string QualityDescription => QualityPreset.For(Quality).Description;
 
-    public SettingsViewModel(ISettingsService settingsService, IAutoStartService autoStart)
+    public SettingsViewModel(ISettingsService settingsService, IAutoStartService autoStart, ILicenseService license)
     {
         _settingsService = settingsService;
         _autoStart = autoStart;
+        _license = license;
+        _license.Changed += (_, _) =>
+            System.Windows.Application.Current?.Dispatcher.Invoke(RefreshLicense);
         Load();
+        RefreshLicense();
+    }
+
+    private void RefreshLicense()
+    {
+        LicenseStatusText = _license.StatusText;
+        IsActivated = _license.Status == LicenseStatus.Active;
+    }
+
+    [RelayCommand]
+    private void ActivateLicense()
+    {
+        var result = _license.Activate(LicenseKeyInput);
+        ActivationMessage = result switch
+        {
+            ActivationResult.Success => "License activated. Thank you!",
+            ActivationResult.Expired => "That key has expired.",
+            _ => "That key isn't valid. Please check it and try again.",
+        };
+        if (result == ActivationResult.Success)
+            LicenseKeyInput = "";
+        RefreshLicense();
+    }
+
+    [RelayCommand]
+    private void DeactivateLicense()
+    {
+        _license.Deactivate();
+        ActivationMessage = "License removed from this device.";
+        RefreshLicense();
     }
 
     private void Load()

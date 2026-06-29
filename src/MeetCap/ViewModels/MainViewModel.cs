@@ -25,6 +25,15 @@ public partial class MainViewModel : ObservableObject
         _recording.StateChanged += (_, _) =>
             System.Windows.Application.Current?.Dispatcher.Invoke(() => IsRecording = _recording.IsRecording);
         IsRecording = _recording.IsRecording;
+
+        // When recording is blocked by licensing, jump the user to the License section in Settings.
+        Dashboard.ActivationRequired += () =>
+        {
+            ShowSettings();
+            System.Windows.MessageBox.Show(
+                "Recording needs an active license. Enter your license key below to continue.",
+                "MeetCap", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        };
     }
 
     [RelayCommand]

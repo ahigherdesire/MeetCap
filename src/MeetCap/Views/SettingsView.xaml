@@ -35,6 +35,32 @@
             <TextBlock Text="Settings" FontSize="26" FontWeight="Bold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,4,0,18" />
 
+            <!-- License -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="License" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="{Binding LicenseStatusText}" TextWrapping="Wrap" FontSize="14"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12" />
+
+                    <TextBlock Text="License key" Style="{StaticResource Label}" />
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox Grid.Column="0" Text="{Binding LicenseKeyInput, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="MEETCAP-XXXXX-XXXXX-…" FontFamily="Consolas" />
+                        <ui:Button Grid.Column="1" Content="Activate" Margin="8,0,0,0" Appearance="Primary"
+                                   Command="{Binding ActivateLicenseCommand}" />
+                    </Grid>
+                    <TextBlock Text="{Binding ActivationMessage}" Style="{StaticResource Hint}" />
+
+                    <ui:Button Content="Remove license from this device" Appearance="Secondary" Margin="0,12,0,0"
+                               Command="{Binding DeactivateLicenseCommand}"
+                               Visibility="{Binding IsActivated, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </StackPanel>
+            </Border>
+
             <!-- Recording -->
             <Border Style="{StaticResource Card}">
                 <StackPanel>

@@ -4,6 +4,9 @@ obj/
 artifacts/
 *.user
 
+## License signing private key — NEVER commit or ship this
+build/keygen/meetcap-private-key.b64
+
 ## Rider / VS
 .vs/
 .idea/

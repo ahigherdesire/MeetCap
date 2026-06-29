@@ -79,6 +79,7 @@ public partial class App : Application
         var sc = new ServiceCollection();
 
         sc.AddSingleton<ISettingsService, SettingsService>();
+        sc.AddSingleton<ILicenseService, LicenseService>();
         sc.AddSingleton<IAutoStartService, AutoStartService>();
         sc.AddSingleton<IRecordingService, RecordingService>();
         sc.AddSingleton<IRecordingLibraryService, RecordingLibraryService>();

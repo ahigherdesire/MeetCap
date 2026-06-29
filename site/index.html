@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetCap — Automatic Meeting Recorder for Windows</title>
+  <meta name="description" content="MeetCap automatically detects your Zoom, Teams, and Google Meet calls and records them in one click. High-quality screen + audio, saved privately on your PC." />
+  <meta property="og:title" content="MeetCap — Automatic Meeting Recorder for Windows" />
+  <meta property="og:description" content="Detects your meetings and records them in one click. Private, local, reliable." />
+  <meta property="og:image" content="assets/dashboard.png" />
+  <meta name="theme-color" content="#0f1320" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ====== EDIT THESE THREE LINES ONLY ====== -->
+  <script>
+    window.MEETCAP = {
+      // 1) Your Stripe Payment Link (Stripe Dashboard → Payment Links → create → copy URL)
+      stripeUrl: "https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK",
+      // 2) Where the installer is hosted (e.g. a GitHub Release asset URL)
+      downloadUrl: "MeetCap-Setup-1.0.0.exe",
+      // 3) Price shown on the page (just display text)
+      price: "$29",
+      priceNote: "one-time payment",
+      contactEmail: "support@meetcap.app"
+    };
+  </script>
+  <!-- ========================================= -->
+
+  <header class="nav">
+    <a class="brand" href="#top">
+      <img src="assets/logo.png" alt="MeetCap" width="34" height="34" />
+      <span>MeetCap</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" data-download href="#">Download</a>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-text">
+        <div class="pill">For Windows 10 &amp; 11</div>
+        <h1>Never lose a meeting again.</h1>
+        <p class="sub">
+          MeetCap quietly detects your Zoom, Teams, and Google Meet calls and records them
+          in one click — screen, system audio, and your mic — saved privately on your PC.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" data-download href="#">Download free — 7-day trial</a>
+          <a class="btn btn-ghost" href="#pricing">See pricing</a>
+        </div>
+        <div class="micro">No account needed · Records locally · Cancel anytime</div>
+      </div>
+      <div class="hero-shot">
+        <img src="assets/dashboard.png" alt="MeetCap dashboard" />
+      </div>
+    </section>
+
+    <!-- Platforms -->
+    <section class="platforms">
+      <span>Works automatically with</span>
+      <div class="logos">
+        <div class="plat">Zoom</div>
+        <div class="plat">Microsoft Teams</div>
+        <div class="plat">Google Meet</div>
+        <div class="plat">Zoom Web</div>
+        <div class="plat">Teams Web</div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features">
+      <h2>Everything you need, nothing you don't</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="ic">🎯</div>
+          <h3>Automatic detection</h3>
+          <p>Detects when you join a meeting and asks if you want to record. No fiddling.</p>
+        </div>
+        <div class="card">
+          <div class="ic">🎙️</div>
+          <h3>Screen + both audio</h3>
+          <p>Captures your screen in HD plus system audio and your microphone in one clean file.</p>
+        </div>
+        <div class="card">
+          <div class="ic">🔒</div>
+          <h3>Private by design</h3>
+          <p>Recordings stay on your computer. Nothing is uploaded — ever.</p>
+        </div>
+        <div class="card">
+          <div class="ic">⚡</div>
+          <h3>Lightweight</h3>
+          <p>Runs quietly in the tray and starts with Windows. Forget it's even there.</p>
+        </div>
+        <div class="card">
+          <div class="ic">🎛️</div>
+          <h3>Quality you choose</h3>
+          <p>Standard, High, or Ultra (up to 60 fps). Hardware-accelerated, low CPU.</p>
+        </div>
+        <div class="card">
+          <div class="ic">🗂️</div>
+          <h3>Organized library</h3>
+          <p>Every recording is named and dated, ready to play, share, or delete.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="how">
+      <h2>Up and running in 60 seconds</h2>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><h3>Download &amp; install</h3><p>One small installer. No account, no setup.</p></div>
+        <div class="step"><div class="num">2</div><h3>Join a meeting</h3><p>MeetCap detects it and pops up “Record?”. Click once.</p></div>
+        <div class="step"><div class="num">3</div><h3>Done</h3><p>Your recording is saved to <code>Videos\MeetCap</code>, ready to use.</p></div>
+      </div>
+    </section>
+
+    <!-- Pricing / paywall -->
+    <section id="pricing" class="pricing">
+      <h2>Simple pricing</h2>
+      <p class="pricing-sub">Try everything free for 7 days. Keep it forever with one payment.</p>
+      <div class="price-card">
+        <div class="price-head">
+          <h3>MeetCap</h3>
+          <div class="price"><span data-price>$29</span> <small data-price-note>one-time payment</small></div>
+        </div>
+        <ul class="checks">
+          <li>Unlimited recordings</li>
+          <li>Zoom, Teams &amp; Google Meet detection</li>
+          <li>Screen + system + mic audio</li>
+          <li>Up to Ultra / 60 fps quality</li>
+          <li>Private — stored on your PC</li>
+          <li>Free updates</li>
+        </ul>
+        <a class="btn btn-primary btn-block" data-buy href="#">Buy now</a>
+        <a class="btn btn-ghost btn-block" data-download href="#">Or start the free trial</a>
+        <p class="fine">After purchase you'll receive your license key by email, usually within a few hours.</p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="faq">
+      <h2>Questions</h2>
+      <details><summary>What happens after the 7-day trial?</summary><p>MeetCap keeps running, but recording is paused until you enter a license key. Buy once, paste your key in Settings → License, and you're set.</p></details>
+      <details><summary>How do I get my license key?</summary><p>After you pay through Stripe, we email your unique key to the address on your receipt. Each key is one-of-a-kind.</p></details>
+      <details><summary>Is my data private?</summary><p>Yes. Recordings are saved only on your computer and are never uploaded. Detection uses safe local signals and never reads your meeting content.</p></details>
+      <details><summary>What are the system requirements?</summary><p>Windows 10 or 11 (64-bit). Everything needed is bundled in the installer — no extra downloads.</p></details>
+      <details><summary>Do I need to ask people before recording?</summary><p>Yes — please get consent from participants as required by the laws in your area. MeetCap shows a clear indicator while recording.</p></details>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final">
+      <h2>Ready to record your next meeting?</h2>
+      <a class="btn btn-primary btn-lg" data-download href="#">Download MeetCap</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="foot-brand">
+      <img src="assets/logo.png" alt="MeetCap" width="26" height="26" />
+      <span>MeetCap</span>
+    </div>
+    <div class="foot-links">
+      <a href="terms.html">Terms / EULA</a>
+      <a href="privacy.html">Privacy</a>
+      <a data-mail href="#">Contact</a>
+    </div>
+    <div class="foot-copy">© <span id="year"></span> MeetCap. All rights reserved.</div>
+  </footer>
+
+  <script>
+    (function () {
+      var c = window.MEETCAP || {};
+      document.querySelectorAll("[data-download]").forEach(function (a) { a.href = c.downloadUrl || "#"; });
+      document.querySelectorAll("[data-buy]").forEach(function (a) { a.href = c.stripeUrl || "#"; a.target = "_blank"; a.rel = "noopener"; });
+      document.querySelectorAll("[data-price]").forEach(function (e) { e.textContent = c.price || "$29"; });
+      document.querySelectorAll("[data-price-note]").forEach(function (e) { e.textContent = c.priceNote || ""; });
+      document.querySelectorAll("[data-mail]").forEach(function (a) { a.href = "mailto:" + (c.contactEmail || ""); });
+      document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+  </script>
+</body>
+</html>

@@ -14,6 +14,7 @@ public sealed class NotificationCoordinator
     private readonly IMeetingDetectionService _detection;
     private readonly IRecordingService _recording;
     private readonly ISettingsService _settings;
+    private readonly ILicenseService _license;
 
     private MeetingPromptWindow? _activePrompt;
     private RecordingIndicatorWindow? _indicator;
@@ -23,11 +24,13 @@ public sealed class NotificationCoordinator
     public NotificationCoordinator(
         IMeetingDetectionService detection,
         IRecordingService recording,
-        ISettingsService settings)
+        ISettingsService settings,
+        ILicenseService license)
     {
         _detection = detection;
         _recording = recording;
         _settings = settings;
+        _license = license;
     }
 
     public void Initialize()
@@ -92,6 +95,14 @@ public sealed class NotificationCoordinator
     {
         if (_recording.IsRecording)
             return;
+        if (!_license.IsRecordingAllowed)
+        {
+            MessageBox.Show(
+                "MeetCap detected a meeting, but recording needs an active license.\n\n" +
+                "Open MeetCap → Settings → License to activate.",
+                "MeetCap", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         _recordingFromMeeting = true;
         _recordingPlatform = platform;
         _recording.Start(platform);

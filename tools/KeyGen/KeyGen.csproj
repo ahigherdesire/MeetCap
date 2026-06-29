@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MeetCap.KeyGen</RootNamespace>
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Share the exact license format with the app so they can never drift. -->
+    <Compile Include="..\..\src\MeetCap\Services\LicenseFormat.cs" Link="LicenseFormat.cs" />
+  </ItemGroup>
+</Project>

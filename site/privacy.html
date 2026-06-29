@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MeetCap — Privacy Policy</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="index.html"><img src="assets/logo.png" alt="MeetCap" width="34" height="34" /><span>MeetCap</span></a>
+    <a class="btn btn-ghost btn-sm" href="index.html" style="margin-left:auto">← Back</a>
+  </header>
+
+  <article class="legal">
+    <h1>Privacy Policy</h1>
+    <p>Last updated: 2026. Your privacy matters. Here's exactly what MeetCap does and doesn't do.</p>
+
+    <h2>Your recordings stay on your device</h2>
+    <p>MeetCap records and stores everything locally on your computer. Your recordings are never
+       uploaded, transmitted, or accessed by us. We have no servers that receive your video or audio.</p>
+
+    <h2>Meeting detection</h2>
+    <p>Detection uses safe local signals (running apps, window titles, and whether the microphone is in
+       use). It never reads the contents of your meetings and never sends anything over the network.</p>
+
+    <h2>Information we process</h2>
+    <ul>
+      <li><strong>Payment &amp; email:</strong> When you buy, Stripe processes your payment and shares
+          your email and order details with us so we can send your license key. We use your email only
+          to deliver your key and provide support.</li>
+      <li><strong>License key:</strong> Stored locally on your device to unlock recording. Activation
+          works offline; we do not track your usage.</li>
+    </ul>
+
+    <h2>Third parties</h2>
+    <p>We use <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe</a> for payments.
+       Please review their privacy policy for how they handle payment data.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about privacy? <a data-mail href="#">Email us</a>.</p>
+
+    <p style="margin-top:30px"><a href="index.html">← Back to MeetCap</a></p>
+  </article>
+
+  <script>
+    document.querySelectorAll("[data-mail]").forEach(function(a){ a.href = "mailto:support@meetcap.app"; });
+  </script>
+</body>
+</html>

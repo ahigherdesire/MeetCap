@@ -13,7 +13,11 @@ public partial class DashboardViewModel : ObservableObject
     private readonly IRecordingLibraryService _library;
     private readonly IMeetingDetectionService _detection;
     private readonly ISettingsService _settings;
+    private readonly ILicenseService _license;
     private readonly DispatcherTimer _elapsedTimer;
+
+    /// <summary>Raised when the user tries to record but needs to activate a license.</summary>
+    public event Action? ActivationRequired;
 
     [ObservableProperty] private bool _isRecording;
     [ObservableProperty] private string _statusTitle = "Ready";
@@ -36,12 +40,14 @@ public partial class DashboardViewModel : ObservableObject
         IRecordingService recording,
         IRecordingLibraryService library,
         IMeetingDetectionService detection,
-        ISettingsService settings)
+        ISettingsService settings,
+        ILicenseService license)
     {
         _recording = recording;
         _library = library;
         _detection = detection;
         _settings = settings;
+        _license = license;
 
         _recording.StateChanged += (_, _) => OnDispatcher(RefreshState);
         _detection.MeetingStarted += (_, _) => OnDispatcher(RefreshState);
@@ -117,9 +123,18 @@ public partial class DashboardViewModel : ObservableObject
     private void ToggleRecording()
     {
         if (_recording.IsRecording)
+        {
             _recording.Stop();
-        else
-            _recording.Start();
+            return;
+        }
+
+        if (!_license.IsRecordingAllowed)
+        {
+            ActivationRequired?.Invoke();
+            return;
+        }
+
+        _recording.Start();
     }
 
     [RelayCommand]
